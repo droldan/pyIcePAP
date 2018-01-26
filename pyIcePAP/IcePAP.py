@@ -16,20 +16,15 @@ __all__ = ["MAX_SUBSET_SIZE", "CStatus", "IcePAPException", "IcePAP"]
 # except BaseException:
 #     pass
 
-# import sys
 import re
 from threading import Lock
 import array
 import struct
-# import numpy
-# import time
 import datetime
-# import operator
+from vdatalib import vdata, ADDRUNSET, PARAMETER, POSITION, SLOPE
 
-from icepapdef import IcepapStatus
-from icepapdef import IcepapInfo
-from icepapdef import IcepapRegisters
-from icepapdef import IcepapTrackMode
+from icepapdef import IcepapStatus, IcepapInfo, IcepapRegisters, \
+    IcepapTrackMode
 
 MAX_SUBSET_SIZE = 200
 
@@ -58,7 +53,6 @@ class IcePAPException(Exception):
 class IcePAP:
 
     def __init__(self, host, port, timeout=3, log_path=None):
-        # print "IcePAP object created"
         self.IcePAPhost = host
         self.IcePAPport = int(port)
         self.Status = CStatus.Disconnected
@@ -112,6 +106,14 @@ class IcePAP:
 
     def disconnect(self):
         pass
+
+    def sendBinaryBlock(self, ushort_data=[]):
+        """
+        Method to send a binary data to the IcePAP
+        :param ushort_data: Data converted to a unsigned short list
+        :return:
+        """
+        raise NotImplemented('You must implement this method')
 
     # ################################ BOARD COMMANDS #########################
 
@@ -500,18 +502,7 @@ class IcePAP:
 
         cmd = "%d:*LISTDAT FLOAT" % addr
         self.sendWriteCommand(cmd, prepend_ack=False)
-
-        startmark = 0xa5aa555a
-        nworddata = (len(lushorts))
-        checksum = sum(lushorts)
-        maskedchksum = checksum & 0xffffffff
-
-        self.sendData(struct.pack('L', startmark)[:4])
-        self.sendData(struct.pack('L', nworddata)[:4])
-        self.sendData(struct.pack('L', maskedchksum)[:4])
-
-        data = array.array('H', lushorts)
-        self.sendData(data.tostring())
+        self.sendBinaryBlock(ushort_data=lushorts)
 
     def getEcamDatIntervals(self, addr):
         cmd = ('%d:?ECAMDAT' % addr)
@@ -568,17 +559,7 @@ class IcePAP:
         cmd = "%d:*ECAMDAT %s FLOAT" % (addr, source)
         self.sendWriteCommand(cmd, prepend_ack=False)
 
-        startmark = 0xa5aa555a
-        nworddata = (len(lushorts))
-        checksum = sum(lushorts)
-        maskedchksum = checksum & 0xffffffff
-
-        self.sendData(struct.pack('L', startmark)[:4])
-        self.sendData(struct.pack('L', nworddata)[:4])
-        self.sendData(struct.pack('L', maskedchksum)[:4])
-
-        data = array.array('H', lushorts)
-        self.sendData(data.tostring())
+        self.sendBinaryBlock(ushort_data=lushorts)
 
         # 2017/Oct/27
         # TODO for long tables, sometimes we get:
@@ -908,8 +889,132 @@ class IcePAP:
                                   "W/R command failed.\n\%s" % str(e))
             raise iex
 
-    # ################################ SYSTEM COMMANDS ########################
+    def setParDat(self, addr, parameter, position, slope=None, mode='SPLINE'):
+        """
+        Method to set the parametric trajectory data
+        IcePAP user manual pag. 100
 
+        :param addr: axis number
+        :param parameter: parameter table
+        :param position: position table
+        :param slope: slope table
+        :param mode: parametric mode [Linear, Spline, Cyclic]'
+        :return:
+        """
+        data = vdata()
+        data.append(parameter, ADDRUNSET, PARAMETER)
+        data.append(position, addr, POSITION)
+        if slope is not None:
+            data.append(slope, addr, SLOPE)
+
+        bin_data = data.bin()
+        lushorts = struct.unpack('%dH' % (bin_data.size/2),
+                                 struct.pack('%db' % len(bin_data),
+                                             *bin_data.flatten()))
+
+        self.clearParDat(addr)
+
+        cmd = '{0}:*PARDAT {1}'.format(addr, mode)
+        self.sendWriteCommand(cmd, prepend_ack=False)
+        self.sendBinaryBlock(ushort_data=lushorts)
+
+    def clearParDat(self, addr):
+        """
+        Method to clean the current parameter tables
+        IcePAP user manual pag. 100
+
+        :param addr: axis
+        :return:
+        """
+        cmd = '%d:PARDAT CLEAR' % addr
+        self.sendWriteCommand(cmd)
+
+    def setParVel(self, addr, value):
+        """
+        Set the parameter velocity.
+        IcePAP user manual pag. 104
+        :param addr: axis number
+        :param value: parameter velocity in units per second
+        :return:
+        """
+        # NOTE: SOMETIMES PARVEL 10 RETURNS EXCEPTION:
+        # xx:PARVEL ERROR Out of range parameter(s)
+        # AND IS AVOIDED BY SETTING IT FIRST TO 0 !!!
+
+        values = [0, value]
+        cmd = '{0}:PARVEL {1}'
+        for v in values:
+            self.sendWriteCommand(cmd.format(addr, v))
+
+    def getParVel(self, addr, vel_type='NOMINAL'):
+        """
+        Get the parameter velocity.
+        IcePAP user manual pag. 104
+
+        :param addr: axis number
+        :param value: parameter velocity in units per second
+        :param vel_type: [Nominal, Min, Max, Current]
+        :return: velocity
+        """
+        cmd = '{0}:?PARVEL'.format(addr)
+        ans = self.sendWriteReadCommand(cmd)
+        return float(self.parseResponse(cmd, ans))
+
+    def setParAcct(self, addr, value):
+        """
+        Set the parameter acceleration time
+        IcePAP user manual pag. 99
+
+        :param addr: axis number
+        :param value: parameter acceleration time in seconds
+        :return:
+        """
+        cmd = '{0}:PARACCT {1}'.format(addr, value)
+        self.sendWriteCommand(cmd)
+
+    def getParAcct(self, addr, acc_type='NOMINAL'):
+        """
+        Get the parameter velocity.
+        IcePAP user manual pag. 99
+
+        :param addr: axis number
+        :param value: parameter velocity in units per second
+        :param acc_type: [Nominal, Param, Default]
+        :return: acceleration time
+        """
+        cmd = '{0}:?PARACCT'.format(addr)
+        ans = self.sendWriteReadCommand(cmd)
+        return float(self.parseResponse(cmd, ans))
+
+    def startMovePar(self, position, axes=[]):
+        cmd = 'MOVEP {0} {1}'.format(position, ' '.join(map(str, axes)))
+        self.sendWriteCommand(cmd)
+
+    def movePar(self, position, axes=[]):
+        cmd = 'PMOVE {0} {1}'.format(position, ' '.join(map(str, axes)))
+        self.sendWriteCommand(cmd)
+
+    def getParVal(self, addr, value):
+        """
+        Get the axis position value for a parametric trajectory value
+        :param addr: axis number
+        :return: axis position
+        """
+        cmd = '{0}:?PARVAL {1}'.format(addr, value)
+        ans = self.sendWriteReadCommand(cmd)
+        return float(self.parseResponse('{0}:?PARVAL'.format(addr), ans))
+
+    def getParPos(self, addr):
+        """
+        Get the parameter position from the axis current position
+        :param addr: axis number
+        :return: parameter positon
+        """
+        cmd = '{0}:?PARPOS'.format(addr)
+        ans = self.sendWriteReadCommand(cmd)
+        return float(self.parseResponse(cmd, ans))
+
+    # ################################ SYSTEM COMMANDS ########################
     def getSysStatus(self):
         command = "?SYSSTAT"
         ans = self.sendWriteReadCommand(command)
@@ -1128,26 +1233,16 @@ class IcePAP:
     # ------------- library utilities ------------------------
 
     def sendFirmware(self, filename, save=True):
-        f = file(filename, 'rb')
-        data = f.read()
+        with open(filename, 'rb') as f:
+            data = f.read()
         data = array.array('H', data)
-        f.close()
-        nworddata = (len(data))
-        chksum = sum(data)
 
         cmd = "*PROG"
         if save:
             cmd += ' SAVE'
+
         self.sendWriteCommand(cmd)
-
-        startmark = 0xa5aa555a
-        maskedchksum = chksum & 0xffffffff
-        # BUGFIX FOR 64-BIT MACHINES
-        self.sendData(struct.pack('L', startmark)[:4])
-        self.sendData(struct.pack('L', nworddata)[:4])
-        self.sendData(struct.pack('L', maskedchksum)[:4])
-
-        self.sendData(data.tostring())
+        self.sendBinaryBlock(ushort_data=data)
 
     # GET PROGRAMMING PROGRESS STATUS
     def getProgressStatus(self):
