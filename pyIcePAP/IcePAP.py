@@ -21,10 +21,10 @@ from threading import Lock
 import array
 import struct
 import datetime
+from future import *
 from vdatalib import vdata, ADDRUNSET, PARAMETER, POSITION, SLOPE
-
 from icepapdef import IcepapStatus, IcepapInfo, IcepapRegisters, \
-    IcepapTrackMode
+    IcepapTrackMode, deprecated
 
 MAX_SUBSET_SIZE = 200
 
@@ -75,15 +75,18 @@ class IcePAP:
             "|".join(self.version_keys),
             re.VERBOSE)
 
+    @deprecated()
     def openLogFile(self):
         name = self.log_path + "/" + self.IcePAPhost + "." + \
                datetime.datetime.now().strftime("%Y%m%d.%H%M%S")
         self.log_file = open(name, "w")
 
+    @deprecated()
     def closeLogFile(self):
         if self.log_file:
             self.log_file.close()
 
+    @deprecated()
     def writeLog(self, message):
         if self.log_file:
             prompt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") \
@@ -119,25 +122,30 @@ class IcePAP:
 
     # ------------ Board Configuration and Identifaction Commands ------------
 
+    @deprecated("active")
     def getActive(self, addr):
         command = "%d:?ACTIVE" % addr
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse(command, ans)
 
+    @deprecated("mode")
     def getMode(self, addr):
         command = "%d:?MODE" % addr
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse(command, ans)
 
+    @deprecated("mode")
     def setMode(self, addr, mode):
         command = "%d:MODE %s" % (addr, mode)
         self.sendWriteCommand(command)
 
+    @deprecated("status")
     def getStatusFromBoard(self, addr):
         command = "%d:?STATUS" % addr
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse(command, ans)
 
+    @deprecated("vstatus")
     def getStatus(self, addr):
         # 20140409 - BUG WITH ?_FSTATUS
         # NOT CLEAR WHY TO USE _FSTATUS AND ALSO
@@ -151,6 +159,7 @@ class IcePAP:
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse('?FSTATUS', ans)
 
+    @deprecated()
     def getMultipleStatus(self, axis_list):
         axis = ""
         for addr in axis_list:
@@ -166,11 +175,13 @@ class IcePAP:
             i = i + 1
         return status_values
 
+    @deprecated("vstatus")
     def getVStatus(self, addr):
         command = "%d:?VSTATUS" % addr
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse(command, ans)
 
+    @deprecated("config")
     def startConfig(self, addr):
         iex = IcePAPException(
             IcePAPException.ERROR,
@@ -178,14 +189,17 @@ class IcePAP:
             "use 'setConfig'")
         raise iex
 
+    @deprecated("config")
     def setConfig(self, addr):
         command = "%d:CONFIG" % addr
         self.sendWriteCommand(command)
 
+    @deprecated("set_config")
     def signConfig(self, addr, signature):
         command = "%d:CONFIG %s" % (addr, signature)
         self.sendWriteCommand(command)
 
+    @deprecated("set_config")
     def getConfigSignature(self, addr):
         iex = IcePAPException(
             IcePAPException.ERROR,
@@ -193,49 +207,59 @@ class IcePAP:
             "use 'getConfig'")
         raise iex
 
+    @deprecated("config")
     def getConfig(self, addr):
         command = "%d:?CONFIG" % addr
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse(command, ans)
 
+    @deprecated("set_cfg")
     def getCfg(self, addr):
         command = "%d:?CFG" % (addr)
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse(command, ans)
 
+    @deprecated("get_cfg")
     def getCfgParameter(self, addr, parameter):
         command = "%d:?CFG %s" % (addr, parameter)
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse(command, ans)
 
+    @deprecated("set_cfg")
     def setCfgParameter(self, addr, parameter, value):
         command = "%d:CFG %s %s" % (addr, parameter, value)
         self.sendWriteCommand(command)
 
+    @deprecated("set_cfginfo")
     def getCfgInfo(self, addr):
         command = "%d:?CFGINFO" % (addr)
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse(command, ans)
 
+    @deprecated("set_cfginfo")
     def getCfgInfoParam(self, addr, param):
         command = "%d:?CFGINFO %s" % (addr, param)
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse(command, ans)
 
+    @deprecated("ver")
     def getVersion(self, addr, module):
         command = "%d:?VER %s" % (addr, module)
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse("%d:?VER" % addr, ans)
 
+    @deprecated("ver")
     def getVersionDsp(self, addr):
         return self.getVersion(addr, "DSP")
 
+    @deprecated("ver")
     def getVersionInfoDict(self, addr):
         command = "%d:?VER INFO" % (addr)
         ans = self.sendWriteReadCommand(command)
         info = self.version_reg_exp.findall(ans)
         return dict(info)
 
+    @deprecated("ver")
     def getVersionSaved(self):
         controller_version = self.getVersion(0, 'CONTROLLER')
         if controller_version < '1.16':
@@ -249,6 +273,7 @@ class IcePAP:
         driver_saved = ans.replace(' ', '')
         return driver_saved
 
+    @deprecated("name")
     def getName(self, addr):
         command = "%d:?NAME" % addr
         # FIX BUG OF INVALID NAMES
@@ -267,15 +292,18 @@ class IcePAP:
         except BaseException:
             return "NAME_WITH_NON-PRINTABLE_CHARS"
 
+    @deprecated("name")
     def setName(self, addr, name):
         command = "%d:NAME %s" % (addr, name)
         self.sendWriteCommand(command)
 
+    @deprecated("id")
     def getId(self, addr):
         command = "%d:?ID HW" % addr
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse("%d:?ID" % addr, ans)
 
+    @deprecated()
     def getTime(self, addr):
         command = "%d:?TIME" % addr
         ans = self.sendWriteReadCommand(command)
@@ -283,38 +311,46 @@ class IcePAP:
 
     # ------------ Power and Motion control Commands -------------------------
 
+    @deprecated("power")
     def getPower(self, addr):
         command = "%d:?POWER" % addr
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse(command, ans)
 
+    @deprecated("power")
     def setPower(self, addr, value):
         command = "%d:POWER %s" % (addr, value)
         self.sendWriteCommand(command)
 
+    @deprecated("auxps")
     def getAuxPS(self, addr):
         command = "%d:?AUXPS" % addr
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse(command, ans)
 
+    @deprecated("auxps")
     def setAuxPS(self, addr, value):
         command = "%d:AUXPS %s" % (addr, value)
         self.sendWriteCommand(command)
 
+    @deprecated("cswitch")
     def getCSWITCH(self, addr):
         command = "%d:?CSWITCH" % addr
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse(command, ans)
 
+    @deprecated("cswitch")
     def setCSWITCH(self, addr, value):
         command = "%d:CSWITCH %s" % (addr, value)
         self.sendWriteCommand(command)
 
+    @deprecated("pos")
     def getPositionFromBoard(self, addr, pos_sel="AXIS"):
         command = "%d:?POS %s" % (addr, pos_sel)
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse("%d:?POS" % addr, ans)
 
+    @deprecated()
     def getPosition(self, addr):
         command = "?_FPOS %d" % addr
         ans = self.sendWriteReadCommand(command)
@@ -325,6 +361,7 @@ class IcePAP:
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse('?FPOS', ans)
 
+    @deprecated()
     def getMultiplePositionFromBoard(self, axis_list):
         axis = ""
         for addr in axis_list:
@@ -340,6 +377,7 @@ class IcePAP:
             i = i + 1
         return position_values
 
+    @deprecated()
     def getMultiplePosition(self, axis_list):
         axis = ""
         for addr in axis_list:
@@ -355,45 +393,55 @@ class IcePAP:
             i = i + 1
         return position_values
 
+    @deprecated("pos")
     def setPosition(self, addr, pos_val, pos_sel="AXIS"):
         command = "%d:POS %s %d" % (addr, pos_sel, pos_val)
         self.sendWriteCommand(command)
 
+    @deprecated("enc")
     def getEncoder(self, addr, pos_sel="AXIS"):
         command = "%d:?ENC %s" % (addr, pos_sel)
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse("%d:?ENC" % addr, ans)
 
+    @deprecated("enc")
     def setEncoder(self, addr, pos_val, pos_sel="AXIS"):
         command = "%d:ENC %s %d" % (addr, pos_sel, pos_val)
         self.sendWriteCommand(command)
 
+    @deprecated("velocity")
     def getSpeed(self, addr):
         command = "%d:?VELOCITY" % addr
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse(command, ans)
 
+    @deprecated("velocity")
     def setSpeed(self, addr, speed):
         command = "%d:VELOCITY %s" % (addr, speed)
         self.sendWriteCommand(command)
 
+    @deprecated("acctime")
     def getAcceleration(self, addr):
         command = "%d:?ACCTIME" % addr
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse(command, ans)
 
+    @deprecated("acctime")
     def setAcceleration(self, addr, acctime):
         command = "%d:ACCTIME %s" % (addr, acctime)
         self.sendWriteCommand(command)
 
+    @deprecated("move")
     def move(self, addr, abs_pos):
         command = "%d:MOVE %d " % (addr, abs_pos)
         self.sendWriteCommand(command)
 
+    @deprecated("rmove")
     def rmove(self, addr, steps):
         command = "%d:RMOVE %d " % (addr, steps)
         self.sendWriteCommand(command)
 
+    @deprecated("cmove")
     def move_in_config(self, addr, steps):
         iex = IcePAPException(
             IcePAPException.ERROR,
@@ -401,16 +449,20 @@ class IcePAP:
             "use 'cmove'")
         raise iex
 
+    @deprecated("cmove")
     def cmove(self, addr, steps):
         command = "%d:CMOVE %d " % (addr, steps)
         self.sendWriteCommand(command)
 
+    @deprecated("jog")
     def jog(self, addr, speed):
         self.sendWriteCommand("%d:JOG %d" % (addr, speed))
 
+    @deprecated("cjog")
     def cjog(self, addr, speed):
         self.sendWriteCommand("%d:CJOG %d" % (addr, speed))
 
+    @deprecated("stop")
     def stopMotor(self, addr):
         iex = IcePAPException(
             IcePAPException.ERROR,
@@ -418,10 +470,12 @@ class IcePAP:
             "use 'stop'")
         raise iex
 
+    @deprecated("stop")
     def stop(self, addr):
         command = "%d:STOP" % addr
         self.sendWriteCommand(command)
 
+    @deprecated("abort")
     def abortMotor(self, addr):
         iex = IcePAPException(
             IcePAPException.ERROR,
@@ -429,25 +483,31 @@ class IcePAP:
             "use 'abort'")
         raise iex
 
+    @deprecated("abort")
     def abort(self, addr):
         command = "%d:ABORT" % addr
         self.sendWriteCommand(command)
 
     # ------------- Closed Loop commands ------------------------
+    @deprecated("pcloop")
     def getClosedLoop(self, addr):
         command = "%d:?PCLOOP" % addr
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse(command, ans)
 
+    @deprecated("pcloop")
     def setClosedLoop(self, addr, enc):
         command = "%d:PCLOOP %s" % (addr, enc)
         self.sendWriteCommand(command)
 
+    @deprecated("esync")
     def syncEncoders(self, addr):
         command = "%d:ESYNC" % addr
         self.sendWriteCommand(command)
 
     # ------------- Input/Output commands ------------------------
+
+    @deprecated("indexer")
     def getIndexerSource(self, addr):
         iex = IcePAPException(
             IcePAPException.ERROR,
@@ -455,11 +515,13 @@ class IcePAP:
             "use 'getIndexer'")
         raise iex
 
+    @deprecated("indexer")
     def getIndexer(self, addr):
         command = "%d:?INDEXER" % addr
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse(command, ans)
 
+    @deprecated("indexer")
     def setIndexerSource(self, addr, src):
         iex = IcePAPException(
             IcePAPException.ERROR,
@@ -467,10 +529,12 @@ class IcePAP:
             "use 'setIndexer'")
         raise iex
 
+    @deprecated("indexer")
     def setIndexer(self, addr, src):
         command = "%d:INDEXER %s" % (addr, src)
         self.sendWriteCommand(command)
 
+    @deprecated()
     def getInfoSource(self, addr, info):
         iex = IcePAPException(
             IcePAPException.ERROR,
@@ -478,11 +542,13 @@ class IcePAP:
             "use 'getInfo'")
         raise iex
 
+    @deprecated()
     def getInfo(self, addr, info):
         command = "%d:?%s" % (addr, info)
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse(command, ans)
 
+    @deprecated()
     def setInfoSource(self, addr, info, src, polarity="NORMAL"):
         iex = IcePAPException(
             IcePAPException.ERROR,
@@ -490,11 +556,13 @@ class IcePAP:
             "use 'setInfo'")
         raise iex
 
+    @deprecated()
     def setInfo(self, addr, info, src, polarity="NORMAL"):
         command = "%d:%s %s %s" % (addr, info, src, polarity)
         self.sendWriteCommand(command)
 
     # ------------- NEW FEATURES WITH VERSION 2.x ------------------
+    @deprecated("set_list_table")
     def sendListDat(self, addr, position_list):
         lpos = position_list
         lushorts = struct.unpack('%dH' % (len(lpos) * 2),
@@ -504,6 +572,7 @@ class IcePAP:
         self.sendWriteCommand(cmd, prepend_ack=False)
         self.sendBinaryBlock(ushort_data=lushorts)
 
+    @deprecated("get_ecam_table")
     def getEcamDatIntervals(self, addr):
         cmd = ('%d:?ECAMDAT' % addr)
         ans = self.sendWriteReadCommand(cmd)
@@ -515,6 +584,7 @@ class IcePAP:
     # 1) The ecamdat list of points MUST be a sorted ascending list!
     # 2) Firmware may still have a bug and does not allow more than 8192 points
 
+    @deprecated("set_ecam_table")
     def sendEcamDatIntervals(
             self,
             addr,
@@ -530,6 +600,7 @@ class IcePAP:
                % (addr, source, start_pos, end_pos, intervals))
         self.sendWriteCommand(cmd)
 
+    @deprecated("set_ecam_table")
     def sendEcamDat(self, addr, source='AXIS', signal='PULSE',
                     position_list=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]):
         signal = signal.upper()
@@ -567,6 +638,7 @@ class IcePAP:
         cmd = '%d:ECAM %s' % (addr, signal)
         self.sendWriteCommand(cmd)
 
+    @deprecated("get_ecam_table")
     def getEcamDat(self, addr):
         """
         Request ECAMDAT complete configuration.
@@ -592,6 +664,7 @@ class IcePAP:
         # print values
         return values
 
+    @deprecated()
     def _getEcamDat(self, addr, nvalues, offset):
         """
         Generic function following the Icepap API.
@@ -613,6 +686,7 @@ class IcePAP:
             raise iex
         return ans
 
+    @deprecated()
     def _EcamDat_str2list(self, ans):
         """
         Returns the parsed list of values in EcamDat
@@ -639,6 +713,7 @@ class IcePAP:
                                   "Invalid end mark in answer.")
             raise iex
 
+    @deprecated("clear_ecam_table")
     def clearEcamDat(self, addr):
         """
         Clear the Ecam Dat configuration
@@ -658,6 +733,7 @@ class IcePAP:
                                   "CLEAR command failed.\n\%s" % str(e))
             raise iex
 
+    @deprecated("ecam")
     def setEcamConfig(self, addr, enabled=True,
                       mode=IcepapInfo.PULSE):
         """
@@ -677,6 +753,7 @@ class IcePAP:
 
         self.sendWriteCommand(cmd)
 
+    @deprecated("ecam")
     def getEcamConfig(self, addr):
         """
         Method to read the Ecam configuration.
@@ -689,6 +766,7 @@ class IcePAP:
         config = self.parseResponse(cmd, ans).split()
         return config
 
+    @deprecated("syncaux")
     def getSyncAux(self, addr):
         """
         Method to read the auxiliary synchronization line.
@@ -702,6 +780,7 @@ class IcePAP:
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse(command, ans).split()
 
+    @deprecated("syncaux")
     def setSyncAux(self, addr, src, polarity="NORMAL"):
         """
         Method to set the auxiliary synchronization line
@@ -716,11 +795,13 @@ class IcePAP:
         self.sendWriteCommand(command)
 
     # ------------- Help and error commands ------------------------
+    @deprecated("blink")
     def blink(self, addr, secs):
         command = "%d:BLINK %d" % (addr, secs)
         self.sendWriteCommand(command)
 
     # ------------- Tracking commands ------------------------
+    @deprecated()
     def _checkNode(self, node):
         valid_starts_values = ('B', 'C', 'E')
         node = node.upper()
@@ -868,6 +949,7 @@ class IcePAP:
                                   "W/R command failed.\n\%s" % str(e))
             raise iex
 
+    @deprecated("track")
     def setTrack(self, addr, signal, mode=IcepapTrackMode.FULL):
         """
         Start position tracking mode for a given icepap board.
@@ -889,6 +971,7 @@ class IcePAP:
                                   "W/R command failed.\n\%s" % str(e))
             raise iex
 
+    @deprecated("get_parametric_table")
     def setParDat(self, addr, parameter, position, slope=None, mode='SPLINE'):
         """
         Method to set the parametric trajectory data
@@ -918,6 +1001,7 @@ class IcePAP:
         self.sendWriteCommand(cmd, prepend_ack=False)
         self.sendBinaryBlock(ushort_data=lushorts)
 
+    @deprecated("clear_parametric_table")
     def clearParDat(self, addr):
         """
         Method to clean the current parameter tables
@@ -929,6 +1013,7 @@ class IcePAP:
         cmd = '%d:PARDAT CLEAR' % addr
         self.sendWriteCommand(cmd)
 
+    @deprecated("parvel")
     def setParVel(self, addr, value):
         """
         Set the parameter velocity.
@@ -946,6 +1031,7 @@ class IcePAP:
         for v in values:
             self.sendWriteCommand(cmd.format(addr, v))
 
+    @deprecated("parvel")
     def getParVel(self, addr, vel_type='NOMINAL'):
         """
         Get the parameter velocity.
@@ -960,6 +1046,7 @@ class IcePAP:
         ans = self.sendWriteReadCommand(cmd)
         return float(self.parseResponse(cmd, ans))
 
+    @deprecated("paracct")
     def setParAcct(self, addr, value):
         """
         Set the parameter acceleration time
@@ -972,6 +1059,7 @@ class IcePAP:
         cmd = '{0}:PARACCT {1}'.format(addr, value)
         self.sendWriteCommand(cmd)
 
+    @deprecated("paracct")
     def getParAcct(self, addr, acc_type='NOMINAL'):
         """
         Get the parameter velocity.
@@ -986,14 +1074,17 @@ class IcePAP:
         ans = self.sendWriteReadCommand(cmd)
         return float(self.parseResponse(cmd, ans))
 
+    @deprecated("movep")
     def startMovePar(self, position, axes=[]):
         cmd = 'MOVEP {0} {1}'.format(position, ' '.join(map(str, axes)))
         self.sendWriteCommand(cmd)
 
+    @deprecated("pmove")
     def movePar(self, position, axes=[]):
         cmd = 'PMOVE {0} {1}'.format(position, ' '.join(map(str, axes)))
         self.sendWriteCommand(cmd)
 
+    @deprecated("get_parval")
     def getParVal(self, addr, value):
         """
         Get the axis position value for a parametric trajectory value
@@ -1004,6 +1095,7 @@ class IcePAP:
         ans = self.sendWriteReadCommand(cmd)
         return float(self.parseResponse('{0}:?PARVAL'.format(addr), ans))
 
+    @deprecated("parpos")
     def getParPos(self, addr):
         """
         Get the parameter position from the axis current position
@@ -1015,23 +1107,28 @@ class IcePAP:
         return float(self.parseResponse(cmd, ans))
 
     # ################################ SYSTEM COMMANDS ########################
+    @deprecated()
     def getSysStatus(self):
         command = "?SYSSTAT"
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse(command, ans)
 
+    @deprecated()
     def getRackStatus(self, racknr):
         command = "?SYSSTAT %d" % racknr
         ans = self.sendWriteReadCommand(command)
         ans = self.parseResponse("?SYSSTAT", ans)
         return ans.split()
 
+    @deprecated()
     def getSystemVersion(self):
         return self.getVersion(0, "")
 
+    @deprecated()
     def resetSystem(self):
         self.sendWriteCommand("RESET")
 
+    @deprecated()
     def getMultiplePositions(self, axis_list):
         axis = ""
         for addr in axis_list:
@@ -1047,6 +1144,7 @@ class IcePAP:
             i = i + 1
         return pos_values
 
+    @deprecated()
     def setMultiplePosition(self, pos_val_list, pos_sel="AXIS"):
         values = ""
         for addr, value in pos_val_list:
@@ -1054,6 +1152,7 @@ class IcePAP:
         command = "POS %s %s" % (pos_sel, values)
         self.sendWriteCommand(command)
 
+    @deprecated()
     def getMultipleEncoder(self, axis_list, pos_sel="AXIS"):
         axis = ""
         for addr in axis_list:
@@ -1069,6 +1168,7 @@ class IcePAP:
             i = i + 1
         return pos_values
 
+    @deprecated()
     def setMultipleEncoder(self, pos_val_list, pos_sel="AXIS"):
         values = ""
         for addr, value in pos_val_list:
@@ -1076,6 +1176,7 @@ class IcePAP:
         command = "ENC %s %s" % (pos_sel, values)
         self.sendWriteCommand(command)
 
+    @deprecated()
     def getMultipleSpeeds(self, axis_list):
         axis = ""
         for addr in axis_list:
@@ -1091,6 +1192,7 @@ class IcePAP:
             i = i + 1
         return values
 
+    @deprecated()
     def setMultipleSpeeds(self, val_list):
         values = ""
         for addr, value in val_list:
@@ -1098,6 +1200,7 @@ class IcePAP:
         command = "VELOCITY %s" % values
         self.sendWriteCommand(command)
 
+    @deprecated()
     def getMultipleAccelerations(self, axis_list):
         axis = ""
         for addr in axis_list:
@@ -1113,6 +1216,7 @@ class IcePAP:
             i = i + 1
         return values
 
+    @deprecated()
     def setMultipleAccelerations(self, val_list):
         values = ""
         for addr, value in val_list:
@@ -1120,6 +1224,7 @@ class IcePAP:
         command = "ACCTIME %s" % values
         self.sendWriteCommand(command)
 
+    @deprecated("controller.move")
     def moveMultiple(self, val_list):
         values = ""
         for addr, value in val_list:
@@ -1127,6 +1232,7 @@ class IcePAP:
         command = "MOVE %s " % values
         self.sendWriteCommand(command)
 
+    @deprecated("controller.move")
     def moveMultipleGrouped(self, val_list):
         values = ""
         for addr, value in val_list:
@@ -1134,6 +1240,7 @@ class IcePAP:
         command = "MOVE GROUP %s " % values
         self.sendWriteCommand(command)
 
+    @deprecated("controller.rmove")
     def rmoveMultiple(self, val_list):
         values = ""
         for addr, value in val_list:
@@ -1141,6 +1248,7 @@ class IcePAP:
         command = "RMOVE %s " % values
         self.sendWriteCommand(command)
 
+    @deprecated()
     def stopMultipleMotor(self, axis_list):
         axis = ""
         for addr in axis_list:
@@ -1148,6 +1256,7 @@ class IcePAP:
         command = "STOP %s" % axis
         self.sendWriteCommand(command)
 
+    @deprecated()
     def abortMultipleMotor(self, axis_list):
         axis = ""
         for addr in axis_list:
@@ -1158,51 +1267,63 @@ class IcePAP:
     # #########################################################################
     # #########################################################################
 
+    @deprecated()
     def setDefaultConfig(self, addr):
         command = "%d:_CFG DEFAULT" % addr
         self.sendWriteCommand(command)
 
+    @deprecated()
     def getCurrent(self, addr):
         return self.getCfgParameter(addr, "NCURR")
 
+    @deprecated()
     def readParameter(self, addr, name, args=""):
         command = "%d:?%s %s" % (addr, name, args)
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse("%d:?%s" % (addr, name), ans)
 
+    @deprecated()
     def writeParameter(self, addr, name, value):
         command = "%d:%s %s" % (addr, name, value)
         self.sendWriteCommand(command)
 
+    @deprecated()
     def isExpertFlagSet(self, addr):
         try:
             return self.getCfgParameter(addr, "EXPERT")
         except BaseException:
             return "NO"
 
+    @deprecated()
     def setExpertFlag(self, addr):
         command = "%d:CFG EXPERT" % (addr)
         self.sendWriteCommand(command)
 
+    @deprecated()
     def disable(self, addr):
         self.setPower(addr, "OFF")
 
+    @deprecated()
     def enable(self, addr):
         self.setPower(addr, "ON")
 
+    @deprecated()
     def checkDriver(self, addr):
         # ans = self.getId(addr)
         return 0
 
+    @deprecated()
     def icepapfiforst(self):
         print ""
 
+    @deprecated()
     def IceFindError(self, ice_answer):
         if (ice_answer.find("ERROR") != -1):
             return True
         else:
             return False
 
+    @deprecated()
     def IceCheckError(self, ice_answer):
         if (ice_answer.find("ERROR") != -1):
             new_ans = self.sendWriteReadCommand(0, "?ERR 1")
@@ -1211,6 +1332,7 @@ class IcePAP:
         else:
             return "IcePAPError. Not Identified"
 
+    @deprecated()
     def parseResponse(self, command, ans):
         command = command.upper()
         command_first_word = command.split(' ')[0]
@@ -1232,6 +1354,7 @@ class IcePAP:
 
     # ------------- library utilities ------------------------
 
+    @deprecated()
     def sendFirmware(self, filename, save=True):
         with open(filename, 'rb') as f:
             data = f.read()
@@ -1245,6 +1368,7 @@ class IcePAP:
         self.sendBinaryBlock(ushort_data=data)
 
     # GET PROGRAMMING PROGRESS STATUS
+    @deprecated()
     def getProgressStatus(self):
         # TRY FIRST THE NEW ?_PROG command
         command = "?_PROG"
@@ -1263,6 +1387,7 @@ class IcePAP:
         return None
 
     # GET RACKS ALIVE
+    @deprecated()
     def getRacksAlive(self):
         racks = []
         rackMask = 0
@@ -1276,6 +1401,7 @@ class IcePAP:
         return racks
 
     # GET DRIVERS ALIVE
+    @deprecated()
     def getDriversAlive(self):
         drivers = []
         rackMask = 0
@@ -1336,6 +1462,7 @@ class IcePAP:
 
     # JLIDON COMMANDS FOR TESTING THE BOARDS
     # 02/09/2009
+    @deprecated("meas_i")
     def getMeas(self, addr, meas_sel="I"):
         command = "%d:?MEAS %s" % (addr, meas_sel)
         ans = self.sendWriteReadCommand(command)
@@ -1354,33 +1481,39 @@ class IcePAP:
         command = "%d:_T_CMD %s %d" % (addr, dc_sel, dc_val)
         self.sendWriteCommand(command)
 
+    @deprecated("meas_vm")
     def getTSD(self, addr):
         return self.getMeas(addr, "VM")
 
     def setTSD(self, addr, pos_val):
         self.setDC(addr, pos_val, "DCSD")
 
+    @deprecated("meas_ia")
     def getTVA(self, addr):
         return self.getMeas(addr, "IA")
 
     def setTVA(self, addr, pos_val):
         self.setDC(addr, pos_val, "DCA")
 
+    @deprecated("meas_ib")
     def getTVB(self, addr):
         return self.getMeas(addr, "IB")
 
     def setTVB(self, addr, pos_val, pos_sel="dcb"):
         self.setDC(addr, pos_val, "DCB")
 
+    @deprecated("meas_vcc")
     def getTVCC(self, addr):
         return self.getMeas(addr, "VCC")
 
     # GCUNI MORE INFO REGARDING THE STATUS REGISTER
     # XX/03/2010
+    @deprecated()
     def getDecodedStatus(self, addr):
         status = self.getStatus(addr)
         return self.decodeStatus(status)
 
+    @deprecated()
     def decodeStatus(self, status):
         if not isinstance(status, int):
             if isinstance(status, str):
@@ -1436,21 +1569,25 @@ class IcePAP:
     # JLIDON - DEBUG INTERNALS
     # 23/04/2010
 
+    @deprecated()
     def serr(self, addr):
         command = '%d:?SERR' % (addr)
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse(command, ans)
 
+    @deprecated()
     def memory(self, addr):
         command = '%d:?MEMORY' % (addr)
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse(command, ans)
 
+    @deprecated("warning")
     def warning(self, addr):
         command = '%d:?WARNING' % (addr)
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse(command, ans)
 
+    @deprecated("alarm")
     def alarm(self, addr):
         command = '%d:?ALARM' % (addr)
         ans = self.sendWriteReadCommand(command)
@@ -1471,6 +1608,7 @@ class IcePAP:
         ans = self.sendWriteReadCommand(command)
         return self.parseResponse('%d:?ISG' % addr, ans)
 
+    @deprecated()
     def debug_internals(self, addr):
         sysstat = self.getSysStatus()
         name = self.getName(addr)
@@ -1531,6 +1669,7 @@ class IcePAP:
     # Detect if a motor is connected.
     # Put power, and measure the current 10 times
     # add it up and check that it is zero
+    @deprecated()
     def motor_connected(self, addr):
         power_state = self.getPower(addr)
         self.enable(addr)
