@@ -1150,6 +1150,10 @@ class IcePAPAxis(object):
 #                       Commands
 # ------------------------------------------------------------------------
 
+    def blink(self, secs):
+        cmd = "BLINK %d" % secs
+        self.send_cmd(cmd)
+
     def send_cmd(self, cmd):
         """
         Wrapper to add the axis number
@@ -1447,6 +1451,8 @@ class IcePAPAxis(object):
         :param vel:
         :return:
         """
+        cmd = 'CJOG {0}'.format(vel)
+        self.send_cmd(cmd)
 
     def track(self, signal, mode='FULL'):
         """

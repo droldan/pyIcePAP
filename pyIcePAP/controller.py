@@ -8,7 +8,31 @@
 # See LICENSE.txt for more info.
 # ------------------------------------------------------------------------------
 
-__all__ = ['IcePAPController', 'EthIcePAPController']
+# General additions
+# TODO: add logging
+# TODO: export non official commands as advance commands in new API
+
+# Changes to be supported from the old API
+# TODO: export getTime
+# TODO: export getSysStatus
+# TODO: export getRackStatus
+# TODO: export setDefaultConfig
+# TODO: export getCurrent
+# TODO: export readParameter
+# TODO: export writeParameter
+# TODO: export isExpertFlagSet
+# TODO: export setExpertFlag
+# TODO: export sendFirmware
+# TODO: export getProgressStatus
+# TODO: export getRacksAlive
+# TODO: export getDriversAlive
+# TODO: export getDecodedStatus
+# TODO: export decodeStatus
+# TODO: export serr
+# TODO: export memory
+
+
+__all__ = ['EthIcePAPController']
 
 from future import *
 from .communication import IcePAPCommunication, CommType
@@ -209,7 +233,6 @@ class IcePAPController(dict):
         :param strict: bool
         :return: None
         """
-
         cmd = 'PMOVE {0} {1} {2} {3}'.format(['', 'GROUP'][group],
                                              ['', 'STRICT'][strict],
                                              pos,
@@ -256,7 +279,7 @@ class IcePAPController(dict):
         :return: [int]
         """
         cmd = '?FSTATUS {0}'.format(self._alias2axisstr(axes))
-        ans  = self.send_cmd(cmd)
+        ans = self.send_cmd(cmd)
         return [int(i, 16) for i in ans]
 
     def get_status(self, axes):
@@ -267,7 +290,7 @@ class IcePAPController(dict):
         :return: [int]
         """
         cmd = '?STATUS {0}'.format(self._alias2axisstr(axes))
-        ans  = self.send_cmd(cmd)
+        ans = self.send_cmd(cmd)
         return [int(i, 16) for i in ans]
 
     def reboot(self):
@@ -463,4 +486,3 @@ class IcePAPController(dict):
 class EthIcePAPController(IcePAPController):
     def __init__(self, host, port=5000):
         IcePAPController.__init__(self, CommType.Socket, host, port)
-
